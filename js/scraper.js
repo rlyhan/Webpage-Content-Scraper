@@ -32,6 +32,7 @@ if (fs.existsSync("./data")) {
   * Builds array of tshirt JSON objects
  * If connection to page unsuccessful
   * Log error message
+  * Write error message to file
  */
 function createTshirtCSV() {
   request('http://shirts4mike.com/shirts.php', function(err, resp, html) {
@@ -42,7 +43,9 @@ function createTshirtCSV() {
         getTshirtInfo(link);
       });
     } else {
-      logError("There’s been a 404 error. Cannot connect to http://shirts4mike.com.");
+      var message = "There’s been a 404 error. Cannot connect to http://shirts4mike.com.";
+      console.log(message);
+      logError(message);
     }
   });
 }
@@ -94,6 +97,8 @@ const fields = ['Title', 'Price', 'ImageURL', 'URL', 'Time'];
 const jsonParse = new json2csvParser({ fields });
 
 /* Save info into CSV named after date of creation
+ * If the file is not saved
+  * Write the error to file
  * @param {string} fileName - The name of the file that will be written
  * @param {string} item - JSON object that will be parsed
  */
@@ -111,14 +116,23 @@ function createCSV(fileName, item) {
 
 /** Builds string consisting of timestamp and error message
  * Writes the string to a file called scraper-error.log
+ * If scraper-error.log already exists
+  * Error message is appended to bottom of file
+ * Else
+  * New scraper-error.log file is created with the error message
  * @param {string} message - The error message that will be written to a file
  */
 function logError(message) {
   var date = new Date();
-  console.log(date.toString());
-  var fileText = "[" + date.toString() + "] " + message;
+  var fileText = "[" + date.toString() + "] " + message + '\r\n';
   var filePath = "scraper-error.log";
-  fs.writeFile(filePath, fileText, (err) => {
-    if (err) throw err;
-  });
+  if (fs.existsSync(filePath)) {
+    fs.appendFileSync(filePath, fileText, (err) => {
+      if (err) throw err;
+    });
+  } else {
+    fs.writeFile(filePath, fileText, (err) => {
+      if (err) throw err;
+    });
+  }
 }
